@@ -1,19 +1,27 @@
+
 local ECS = require(game.ReplicatedStorage.ECS)
 
-ECS.registerComponent("VehicleMove")
+--create a new entity
+local entity = ECS.newEntity()
 
-for i = 1, 10 do
-    local test = ECS.newEntity()
-	if math.random(1, 2) == math.random(1, 2) then
-        local speed = math.random(1, 67)
-        print(test)
-		ECS.addComponent(test, "VehicleMove", {
-			MoveSpeed = speed,
-		})
-	end
+--register a component
+ECS.registerComponent("Health")
+
+--add that component to an entity
+ECS.addComponent(entity, "Health", {
+    Value = 100,
+})
+
+--get all entities that has that component
+local entities = ECS.queryentities("Health")
+
+--loop through all entities
+for i, EntityID in ipairs(entities) do
+    --get the health component so that it can be modified
+    local HealthComponent = ECS.getcomponent(EntityID, "Health")
+    if HealthComponent then
+        HealthComponent.Value = 0
+    end
 end
-
-
-
-
-print(ECS.queryentities("VehicleMove"))
+--removes that component from an entity
+ECS.removeComponent(entity, "Health")

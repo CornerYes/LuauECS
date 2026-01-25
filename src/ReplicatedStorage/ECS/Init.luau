@@ -43,8 +43,9 @@ function module.addComponent(EntityID, ComponentType, Component: any)
     end
 
     local componentlist = Components[ComponentType]
-    if not Components[ComponentType] then
+    if not componentlist then
         module.registerComponent(ComponentType)
+        componentlist = Components[ComponentType]
     end
     
     table.insert(componentlist.data, Component)
@@ -64,7 +65,7 @@ function module.removeComponent(EntityID, ComponentType)
     end
 
     local index = componentlist.sparse[EntityID]
-    local lastindex = #componentlist.dense
+    local lastindex = #componentlist.data
     local lastEntityID = componentlist.dense[lastindex]
 
     swaptable(componentlist.data, index, lastindex)
@@ -74,6 +75,15 @@ function module.removeComponent(EntityID, ComponentType)
     componentlist.sparse[EntityID] = nil
     componentlist.dense[lastindex] = nil
     componentlist.data[lastindex] = nil
+end
+
+function module.getcomponent(entityID, ComponentType): any?
+    local componentList = Components[ComponentType]
+    if componentList then
+        local index = componentList.sparse[entityID]
+        return componentList.data[index]
+    end
+    return nil
 end
 
 function module.queryentities(...)
@@ -113,6 +123,10 @@ function module.queryentities(...)
         end
     end
     return result
+end
+
+function module.returneverything()
+    return Components
 end
 
 return module
