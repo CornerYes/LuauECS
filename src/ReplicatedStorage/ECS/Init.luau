@@ -1,14 +1,13 @@
 --!strict
 local module = {}
-local nextID = 0
-
-type componentsparse = {
+module.__index = module
+type component = {
 	sparse: {number},
 	dense: {[number]: number},
     data: {[number]: any}
 }
 
-local Components: {[string]: componentsparse} = {}
+local nextID = 0
 
 local function swaptable(tabletoswap, from, to)
 	local todata = tabletoswap[to]
@@ -16,36 +15,42 @@ local function swaptable(tabletoswap, from, to)
 	tabletoswap[from] = todata
 end
 
-function module.newEntity()
+function module.new()
+    local self = setmetatable({}, module)
+    self.Components = {} :: {[string]: component}
+    return self
+end
+
+function module:newEntity()
     nextID = nextID + 1
     return nextID
 end
 
-function module.registerComponent(ComponentType)
-	Components[ComponentType] = {
+function module:registerComponent(ComponentType)
+	self.Components[ComponentType] = {
 		sparse = {},
         dense = {},
         data = {},
 	}
 end
 
-function module.hasComponent(EntityID, ComponentType): boolean?
-    if not Components[ComponentType] then
+function module:hasComponent(EntityID, ComponentType): boolean?
+    if not self.Components[ComponentType] then
         return nil
     end
-    return Components[ComponentType].sparse[EntityID] ~= nil
+    return self.Components[ComponentType].sparse[EntityID] ~= nil
 end
 
-function module.addComponent(EntityID, ComponentType, Component: any)
-    if module.hasComponent(EntityID, ComponentType) then
+function module:addComponent(EntityID, ComponentType, Component: any)
+    if self.hasComponent(EntityID, ComponentType) then
         warn(tostring(EntityID).." already has "..ComponentType)
         return
     end
 
-    local componentlist = Components[ComponentType]
+    local componentlist = self.Components[ComponentType]
     if not componentlist then
-        module.registerComponent(ComponentType)
-        componentlist = Components[ComponentType]
+        self.registerComponent(ComponentType)
+        componentlist = self.Components[ComponentType]
     end
     
     table.insert(componentlist.data, Component)
@@ -54,13 +59,13 @@ function module.addComponent(EntityID, ComponentType, Component: any)
     componentlist.dense[index] = EntityID
 end
 
-function module.removeComponent(EntityID, ComponentType)
-    local componentlist = Components[ComponentType]
+function module:removeComponent(EntityID, ComponentType)
+    local componentlist = self.Components[ComponentType]
     if not componentlist then
         return
     end
 
-    if not module.hasComponent(EntityID, ComponentType) then
+    if not self.hasComponent(EntityID, ComponentType) then
         return
     end
 
@@ -77,8 +82,8 @@ function module.removeComponent(EntityID, ComponentType)
     componentlist.data[lastindex] = nil
 end
 
-function module.getcomponent(entityID, ComponentType): any?
-    local componentList = Components[ComponentType]
+function module:getcomponent(entityID, ComponentType): any?
+    local componentList = self.Components[ComponentType]
     if componentList then
         local index = componentList.sparse[entityID]
         return componentList.data[index]
@@ -86,15 +91,15 @@ function module.getcomponent(entityID, ComponentType): any?
     return nil
 end
 
-function module.queryentities(...)
+function module:queryentities(...)
     local result = {}
     local componentstofind = table.pack(...)
     local smallest = math.huge
     local Componentpicked = nil
 
     for i, componentType in ipairs(componentstofind) do
-        if Components[componentType] then
-            local amountOfEntities = #Components[componentType].dense
+        if self.Components[componentType] then
+            local amountOfEntities = #self.Components[componentType].dense
             if amountOfEntities < smallest then
                 smallest = amountOfEntities
                 Componentpicked = componentType
@@ -102,7 +107,7 @@ function module.queryentities(...)
         end
     end
 
-    local ComponentList = Components[Componentpicked]
+    local ComponentList = self.Components[Componentpicked]
 
     for i = 1, #ComponentList.dense do
         local entityID = ComponentList.dense[i]
@@ -110,7 +115,7 @@ function module.queryentities(...)
 
         for _, ComponentType in ipairs(componentstofind) do
             if ComponentType ~= Componentpicked then
-                local Component = Components[ComponentType]
+                local Component = self.Components[ComponentType]
                 if not Component.sparse[entityID] then
                     hasall = false
                     break
@@ -125,8 +130,9 @@ function module.queryentities(...)
     return result
 end
 
-function module.returneverything()
-    return Components
+--debug purposes
+function module:returneverything()
+    return self.Components
 end
 
 return module
