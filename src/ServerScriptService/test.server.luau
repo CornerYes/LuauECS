@@ -1,14 +1,16 @@
-
 local ECS = require(game.ReplicatedStorage.ECS)
 
-local tank = ECS.newEntity()
-
 ECS.registerComponent("VehicleMove")
-ECS.addComponent(tank, "VehicleMove", {
-    MoveSpeed = 1,
-})
+
+for i = 1, 10 do
+    local test = ECS.newEntity()
+	if math.random(1, 2) == 1 then
+		ECS.addComponent(test, "VehicleMove", {
+			MoveSpeed = math.random(1, 67),
+		})
+	end
+end
 
 
---get all entities that has this componenet
 
-local Entities = ECS.getAllEntities("VehicleMove")
+print(ECS.returncomponent())
