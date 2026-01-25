@@ -1,5 +1,4 @@
 --!strict
-local CommerceService = game:GetService("CommerceService")
 local module = {}
 local nextID = 0
 
@@ -30,8 +29,11 @@ function module.registerComponent(ComponentType)
 	}
 end
 
-function module.hasComponent(EntityID, ComponentType)
-    return Components[ComponentType].sparse[EntityID]
+function module.hasComponent(EntityID, ComponentType): boolean?
+    if not Components[ComponentType] then
+        return nil
+    end
+    return Components[ComponentType].sparse[EntityID] ~= nil
 end
 
 function module.addComponent(EntityID, ComponentType, Component: any)
@@ -53,7 +55,13 @@ end
 
 function module.removeComponent(EntityID, ComponentType)
     local componentlist = Components[ComponentType]
-    print(componentlist)
+    if not componentlist then
+        return
+    end
+
+    if not module.hasComponent(EntityID, ComponentType) then
+        return
+    end
 
     local index = componentlist.sparse[EntityID]
     local lastindex = #componentlist.dense
@@ -66,11 +74,45 @@ function module.removeComponent(EntityID, ComponentType)
     componentlist.sparse[EntityID] = nil
     componentlist.dense[lastindex] = nil
     componentlist.data[lastindex] = nil
-    print(componentlist)
 end
 
 function module.getAllEntities(...)
-    
+    local result = {}
+    local componentstofind = table.pack(...)
+    local smallest = math.huge
+    local Componentpicked = nil
+
+    for i, componentType in ipairs(componentstofind) do
+        if Components[componentType] then
+            local amountOfEntities = #Components[componentType].dense
+            if amountOfEntities < smallest then
+                smallest = amountOfEntities
+                Componentpicked = componentType
+            end
+        end
+    end
+
+    local ComponentList = Components[Componentpicked]
+
+    for i = 1, #ComponentList.dense do
+        local entityID = ComponentList.dense[i]
+        local hasall = true
+
+        for _, ComponentType in ipairs(componentstofind) do
+            if ComponentType ~= Componentpicked then
+                local Component = Components[ComponentType]
+                if not Component.sparse[entityID] then
+                    hasall = false
+                    break
+                end
+            end
+        end
+
+        if hasall then
+            table.insert(result, entityID)
+        end
+    end
+    return result
 end
 
 function module.returncomponent()
