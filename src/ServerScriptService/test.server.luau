@@ -16,4 +16,4 @@ end
 
 
 
-print(ECS.getAllEntities("VehicleMove"))
+print(ECS.queryentities("VehicleMove"))

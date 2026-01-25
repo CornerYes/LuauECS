@@ -76,7 +76,7 @@ function module.removeComponent(EntityID, ComponentType)
     componentlist.data[lastindex] = nil
 end
 
-function module.getAllEntities(...)
+function module.queryentities(...)
     local result = {}
     local componentstofind = table.pack(...)
     local smallest = math.huge
@@ -113,10 +113,6 @@ function module.getAllEntities(...)
         end
     end
     return result
-end
-
-function module.returncomponent()
-    return Components
 end
 
 return module
