@@ -15,6 +15,23 @@ local function swaptable(tabletoswap, from, to)
 	tabletoswap[from] = todata
 end
 
+local function getsmallestcomponent(self, ...): component?
+    local components = table.pack(...)
+    local smallest = math.huge
+    local Componentpicked = nil
+
+    for i, componentType in ipairs(components) do
+        if self.Components[componentType] then
+            local amountOfEntities = #self.Components[componentType].dense
+            if amountOfEntities < smallest then
+                smallest = amountOfEntities
+                Componentpicked = componentType
+            end
+        end
+    end
+    return Componentpicked
+end
+
 function module.new()
     local self = setmetatable({}, module)
     self.Components = {} :: {[string]: component}
@@ -26,6 +43,15 @@ function module:newEntity()
     return nextID
 end
 
+function module:destroyEntity(entity)
+    for ComponentType: string, component: component in pairs(self.Components) do
+        local index = component.sparse[entity]
+        if index then
+            self:removeComponent(entity, ComponentType)
+        end
+    end
+end
+
 function module:registerComponent(ComponentType)
 	self.Components[ComponentType] = {
 		sparse = {},
@@ -34,59 +60,59 @@ function module:registerComponent(ComponentType)
 	}
 end
 
-function module:hasComponent(EntityID, ComponentType): boolean?
+function module:hasComponent(entity, ComponentType): boolean?
     if not self.Components[ComponentType] then
         return nil
     end
-    return self.Components[ComponentType].sparse[EntityID] ~= nil
+    return self.Components[ComponentType].sparse[entity] ~= nil
 end
 
-function module:addComponent(EntityID, ComponentType, Component: any)
-    if self.hasComponent(EntityID, ComponentType) then
-        warn(tostring(EntityID).." already has "..ComponentType)
+function module:addComponent(entity, ComponentType, Component: any)
+    if self.hasComponent(entity, ComponentType) then
+        warn(tostring(entity).." already has "..ComponentType)
         return
     end
 
-    local componentlist = self.Components[ComponentType]
-    if not componentlist then
+    local component = self.Components[ComponentType]
+    if not component then
         self.registerComponent(ComponentType)
-        componentlist = self.Components[ComponentType]
+        component = self.Components[ComponentType]
     end
     
-    table.insert(componentlist.data, Component)
-    local index = #componentlist.data
-    componentlist.sparse[EntityID] = index
-    componentlist.dense[index] = EntityID
+    table.insert(component.data, Component)
+    local index = #component.data
+    component.sparse[entity] = index
+    component.dense[index] = entity
 end
 
-function module:removeComponent(EntityID, ComponentType)
-    local componentlist = self.Components[ComponentType]
-    if not componentlist then
+function module:removeComponent(entity, ComponentType)
+    local component = self.Components[ComponentType]
+    if not component then
         return
     end
 
-    if not self.hasComponent(EntityID, ComponentType) then
+    if not self.hasComponent(entity, ComponentType) then
         return
     end
 
-    local index = componentlist.sparse[EntityID]
-    local lastindex = #componentlist.data
-    local lastEntityID = componentlist.dense[lastindex]
+    local index = component.sparse[entity]
+    local lastindex = #component.data
+    local lastentity = component.dense[lastindex]
 
-    swaptable(componentlist.data, index, lastindex)
-    swaptable(componentlist.dense, index, lastindex)
-    componentlist.sparse[lastEntityID] = index
+    swaptable(component.data, index, lastindex)
+    swaptable(component.dense, index, lastindex)
+    component.sparse[lastentity] = index
 
-    componentlist.sparse[EntityID] = nil
-    componentlist.dense[lastindex] = nil
-    componentlist.data[lastindex] = nil
+    component.sparse[entity] = nil
+    component.dense[lastindex] = nil
+    component.data[lastindex] = nil
 end
 
-function module:getcomponent(entityID, ComponentType): any?
-    local componentList = self.Components[ComponentType]
-    if componentList then
-        local index = componentList.sparse[entityID]
-        return componentList.data[index]
+function module:getcomponent(entity, ComponentType): any?
+    if self:hasComponent(entity, ComponentType) then
+        local component = self.Components[ComponentType]
+        local index = component.sparse[entity]
+        return component.data[index]
     end
     return nil
 end
@@ -94,29 +120,19 @@ end
 function module:queryentities(...)
     local result = {}
     local componentstofind = table.pack(...)
-    local smallest = math.huge
-    local Componentpicked = nil
+    local smallestComponent = getsmallestcomponent(self, componentstofind)
+    local component = self.Components[smallestComponent]
+    
+    if not component then return end
 
-    for i, componentType in ipairs(componentstofind) do
-        if self.Components[componentType] then
-            local amountOfEntities = #self.Components[componentType].dense
-            if amountOfEntities < smallest then
-                smallest = amountOfEntities
-                Componentpicked = componentType
-            end
-        end
-    end
-
-    local ComponentList = self.Components[Componentpicked]
-
-    for i = 1, #ComponentList.dense do
-        local entityID = ComponentList.dense[i]
+    for i = 1, #component.dense do
+        local entity = component.dense[i]
         local hasall = true
 
         for _, ComponentType in ipairs(componentstofind) do
-            if ComponentType ~= Componentpicked then
+            if ComponentType ~= smallestComponent then
                 local Component = self.Components[ComponentType]
-                if not Component.sparse[entityID] then
+                if not Component.sparse[entity] then
                     hasall = false
                     break
                 end
@@ -124,9 +140,10 @@ function module:queryentities(...)
         end
 
         if hasall then
-            table.insert(result, entityID)
+            table.insert(result, entity)
         end
     end
+
     return result
 end
 
