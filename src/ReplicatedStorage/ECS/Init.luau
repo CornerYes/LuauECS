@@ -147,9 +147,4 @@ function module:queryentities(...)
     return result
 end
 
---debug purposes
-function module:returneverything()
-    return self.Components
-end
-
 return module
