@@ -1,5 +1,4 @@
 --!strict
-local StartPageService = game:GetService("StartPageService")
 local module = {}
 module.__index = module
 type component = {
