@@ -1,4 +1,5 @@
 --!strict
+local StartPageService = game:GetService("StartPageService")
 local module = {}
 module.__index = module
 type component = {
@@ -166,7 +167,7 @@ function module:queryentities(...)
 	return result
 end
 
-function module:foreach(components, func: (number) -> ())
+function module:foreach(components, callback: (number) -> ())
 	local smallestComponent = getsmallestcomponent(self, components)
 	local component = self.Components[smallestComponent]
 
@@ -189,7 +190,11 @@ function module:foreach(components, func: (number) -> ())
 		end
 
 		if hasall then
-			func(entity)
+            local newpcall: (...any) -> (boolean, string?) = pcall
+            local success, errormsg = newpcall(callback, entity)
+            if not success and errormsg then
+                warn("Error: "..errormsg)
+            end
 		end
 	end
 end
